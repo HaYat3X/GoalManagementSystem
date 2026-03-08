@@ -52,9 +52,9 @@ function startResize(e: MouseEvent) {
       </div>
 
       <nav class="nav-section">
-        <NuxtLink class="nav-item" to="/">Home</NuxtLink>
-        <NuxtLink class="nav-item" to="/pages">All pages</NuxtLink>
-        <NuxtLink class="nav-item" to="/updates">Updates</NuxtLink>
+        <NuxtLink class="nav-item" to="/">ダッシュボード</NuxtLink>
+        <NuxtLink class="nav-item" to="/smart">SMART Goals</NuxtLink>
+        <NuxtLink class="nav-item" to="/year">年間目標</NuxtLink>
       </nav>
 
     </div>

@@ -4,38 +4,39 @@ import { ref, computed, nextTick } from 'vue'
 // =====================
 // Types
 // =====================
-type SmartStatus = 'on_track' | 'at_risk' | 'completed' | 'not_started'
-type SmartPriority = 'high' | 'medium' | 'low'
+type SmartStatus = 'Planning' | 'Active' | 'Completed'
+type SmartCategory = 'Career' | 'Skill' | 'Finance' | 'Life'
 
 interface SmartItem {
   id: string
   title: string
+  category: SmartCategory
   specific: string
   measurable: string
   achievable: string
   relevant: string
   timeBound: string
+  startDate: string
+  targetYear: number
   status: SmartStatus
-  priority: SmartPriority
-  owner: string
-  dueDate: string
   progress: number
+  yearPlans: string[] // Relation to YearPlan DB
 }
 
 // =====================
 // Constants
 // =====================
 const STATUS_CONFIG: Record<SmartStatus, { label: string; color: string; bg: string }> = {
-  on_track: { label: 'On Track', color: '#2e7d32', bg: '#e8f5e9' },
-  at_risk: { label: 'At Risk', color: '#c62828', bg: '#ffebee' },
-  completed: { label: 'Completed', color: '#1565c0', bg: '#e3f2fd' },
-  not_started: { label: 'Not Started', color: '#6b6b68', bg: '#f0f0ee' },
+  Planning: { label: 'Planning', color: '#6b6b68', bg: '#f0f0ee' },
+  Active: { label: 'Active', color: '#1565c0', bg: '#e3f2fd' },
+  Completed: { label: 'Completed', color: '#2e7d32', bg: '#e8f5e9' },
 }
 
-const PRIORITY_CONFIG: Record<SmartPriority, { label: string; color: string; dot: string }> = {
-  high: { label: 'High', color: '#c62828', dot: '#ef5350' },
-  medium: { label: 'Medium', color: '#e65100', dot: '#ff7043' },
-  low: { label: 'Low', color: '#2e7d32', dot: '#66bb6a' },
+const CATEGORY_CONFIG: Record<SmartCategory, { label: string; color: string; bg: string }> = {
+  Career: { label: 'Career', color: '#2e7d32', bg: '#e8f5e9' },
+  Skill: { label: 'Skill', color: '#1565c0', bg: '#e3f2fd' },
+  Finance: { label: 'Finance', color: '#e65100', bg: '#ffebee' },
+  Life: { label: 'Life', color: '#6b6b68', bg: '#f0f0ee' },
 }
 
 const SMART_FIELDS: { key: keyof SmartItem; label: string; short: string }[] = [
@@ -43,7 +44,6 @@ const SMART_FIELDS: { key: keyof SmartItem; label: string; short: string }[] = [
   { key: 'measurable', label: 'Measurable', short: 'M' },
   { key: 'achievable', label: 'Achievable', short: 'A' },
   { key: 'relevant', label: 'Relevant', short: 'R' },
-  { key: 'timeBound', label: 'Time-bound', short: 'T' },
 ]
 
 // =====================
@@ -53,86 +53,92 @@ const items = ref<SmartItem[]>([
   {
     id: '1',
     title: 'Grow Monthly Active Users',
+    category: 'Career',
     specific: 'Increase MAU by 25% through onboarding improvements',
     measurable: 'Track via analytics dashboard weekly',
     achievable: 'Allocated 2 engineers + 1 designer',
     relevant: 'Directly tied to Q3 growth OKR',
-    timeBound: 'By end of Q3 2025',
-    status: 'on_track',
-    priority: 'high',
-    owner: 'Yuki K.',
-    dueDate: '2025-09-30',
+    timeBound: '2025-09-30',
+    startDate: '2025-01-01',
+    targetYear: 2025,
+    status: 'Active',
     progress: 62,
+    yearPlans: [],
   },
   {
     id: '2',
     title: 'Reduce Support Ticket Volume',
+    category: 'Skill',
     specific: 'Decrease tickets 30% via self-serve docs',
     measurable: 'Monthly ticket count from Zendesk',
     achievable: 'Content team + AI chatbot integration',
     relevant: 'Supports NPS improvement goal',
-    timeBound: 'End of August 2025',
-    status: 'at_risk',
-    priority: 'high',
-    owner: 'Sato M.',
-    dueDate: '2025-08-31',
+    timeBound: '2025-08-31',
+    startDate: '2025-02-01',
+    targetYear: 2025,
+    status: 'Active',
     progress: 28,
+    yearPlans: [],
   },
   {
     id: '3',
     title: 'Launch Mobile App v2',
+    category: 'Finance',
     specific: 'Ship redesigned iOS & Android apps',
     measurable: 'App Store rating ≥ 4.5, D7 retention ≥ 40%',
     achievable: '5-person mobile team, 12-week sprint',
     relevant: 'Core to FY26 mobile-first strategy',
-    timeBound: 'October 15, 2025',
-    status: 'on_track',
-    priority: 'high',
-    owner: 'Park J.',
-    dueDate: '2025-10-15',
+    timeBound: '2025-10-15',
+    startDate: '2025-03-01',
+    targetYear: 2025,
+    status: 'Active',
     progress: 45,
+    yearPlans: [],
   },
   {
     id: '4',
     title: 'Improve CI/CD Pipeline Speed',
+    category: 'Skill',
     specific: 'Cut average build time from 14min → 6min',
     measurable: 'CI dashboard average over 30-day window',
     achievable: 'Platform team owns infra changes',
     relevant: 'Developer velocity KPI',
-    timeBound: 'End of July 2025',
-    status: 'completed',
-    priority: 'medium',
-    owner: 'Chen R.',
-    dueDate: '2025-07-31',
+    timeBound: '2025-07-31',
+    startDate: '2025-01-15',
+    targetYear: 2025,
+    status: 'Completed',
     progress: 100,
+    yearPlans: [],
   },
   {
     id: '5',
     title: 'Establish Data Governance Policy',
+    category: 'Career',
     specific: 'Define data classification, access, retention rules',
     measurable: 'Policy adopted by all 6 product teams',
     achievable: 'Legal + Eng leads aligned',
     relevant: 'Required for SOC2 Type II',
-    timeBound: 'Q4 2025',
-    status: 'not_started',
-    priority: 'medium',
-    owner: 'Inoue T.',
-    dueDate: '2025-12-31',
+    timeBound: '2025-12-31',
+    startDate: '2025-04-01',
+    targetYear: 2025,
+    status: 'Planning',
     progress: 0,
+    yearPlans: [],
   },
   {
     id: '6',
     title: 'Increase Revenue Per User',
+    category: 'Finance',
     specific: 'Upsell 15% of free users to paid plans',
     measurable: 'Stripe MRR conversion rate',
     achievable: 'Growth team + in-app upgrade prompts',
     relevant: 'Critical for Series B metrics',
-    timeBound: 'End of Q3',
-    status: 'at_risk',
-    priority: 'high',
-    owner: 'Yuki K.',
-    dueDate: '2025-09-30',
+    timeBound: '2025-09-30',
+    startDate: '2025-01-01',
+    targetYear: 2025,
+    status: 'Active',
     progress: 19,
+    yearPlans: [],
   },
 ])
 
@@ -189,7 +195,7 @@ const allSelected = computed(() =>
 // Methods
 // =====================
 function startEdit(item: SmartItem, field: keyof SmartItem) {
-  const nonEditable: (keyof SmartItem)[] = ['id', 'status', 'priority', 'progress']
+  const nonEditable: (keyof SmartItem)[] = ['id', 'status', 'category', 'progress', 'yearPlans']
   if (nonEditable.includes(field)) return
   editingCell.value = { id: item.id, field }
   editValue.value = String(item[field])
@@ -215,15 +221,15 @@ function cancelEdit() {
 }
 
 function cycleStatus(item: SmartItem) {
-  const order: SmartStatus[] = ['not_started', 'on_track', 'at_risk', 'completed']
+  const order: SmartStatus[] = ['Planning', 'Active', 'Completed']
   const idx = order.indexOf(item.status)
   item.status = order[(idx + 1) % order.length]
 }
 
-function cyclePriority(item: SmartItem) {
-  const order: SmartPriority[] = ['low', 'medium', 'high']
-  const idx = order.indexOf(item.priority)
-  item.priority = order[(idx + 1) % order.length]
+function cycleCategory(item: SmartItem) {
+  const order: SmartCategory[] = ['Career', 'Skill', 'Finance', 'Life']
+  const idx = order.indexOf(item.category)
+  item.category = order[(idx + 1) % order.length]
 }
 
 function setProgress(item: SmartItem, e: Event) {
@@ -252,16 +258,17 @@ function addRow() {
   const newItem: SmartItem = {
     id: Date.now().toString(),
     title: '',
+    category: 'Career',
     specific: '',
     measurable: '',
     achievable: '',
     relevant: '',
     timeBound: '',
-    status: 'not_started',
-    priority: 'medium',
-    owner: '',
-    dueDate: '',
+    startDate: '',
+    targetYear: new Date().getFullYear(),
+    status: 'Planning',
     progress: 0,
+    yearPlans: [],
   }
   items.value.push(newItem)
   nextTick(() => {
@@ -291,7 +298,7 @@ function formatDate(d: string) {
     <div class="page-header">
       <div class="page-title-row">
         <span class="page-emoji">🎯</span>
-        <h1 class="page-title">SMART Goals</h1>
+        <h1 class="page-title">SMART 目標</h1>
       </div>
       <p class="page-desc">Track, manage, and refine SMART objectives across your organization.</p>
 
@@ -335,7 +342,7 @@ function formatDate(d: string) {
               <input type="checkbox" :checked="allSelected" @change="toggleAll" class="cb" />
             </th>
 
-            <!-- Title -->
+            <!-- Goal Title -->
             <th class="col-title sortable" @click="toggleSort('title')">
               <span>Goal Title</span>
               <svg v-if="sortField === 'title'" width="10" height="10" viewBox="0 0 24 24" fill="none"
@@ -345,6 +352,9 @@ function formatDate(d: string) {
               </svg>
             </th>
 
+            <!-- Category -->
+            <th class="col-category sortable" @click="toggleSort('category')">Category</th>
+
             <!-- SMART fields -->
             <th v-for="f in SMART_FIELDS" :key="f.key" class="col-smart">
               <span class="smart-label">
@@ -353,12 +363,21 @@ function formatDate(d: string) {
               </span>
             </th>
 
-            <!-- Meta columns -->
+            <!-- TimeBound -->
+            <th class="col-timebound sortable" @click="toggleSort('timeBound')">Time-bound</th>
+
+            <!-- StartDate -->
+            <th class="col-startdate sortable" @click="toggleSort('startDate')">Start Date</th>
+
+            <!-- TargetYear -->
+            <th class="col-targetyear sortable" @click="toggleSort('targetYear')">Target Year</th>
+
+            <!-- Status -->
             <th class="col-status sortable" @click="toggleSort('status')">Status</th>
-            <th class="col-priority sortable" @click="toggleSort('priority')">Priority</th>
-            <th class="col-owner">Owner</th>
-            <th class="col-due sortable" @click="toggleSort('dueDate')">Due Date</th>
+
+            <!-- Progress -->
             <th class="col-progress">Progress</th>
+
             <th class="col-action"></th>
           </tr>
         </thead>
@@ -372,7 +391,7 @@ function formatDate(d: string) {
               <input type="checkbox" :checked="selectedRows.has(item.id)" @change="toggleRow(item.id)" class="cb" />
             </td>
 
-            <!-- Title (editable) -->
+            <!-- Goal Title (editable) -->
             <td class="col-title cell-editable" @dblclick="startEdit(item, 'title')">
               <template v-if="editingCell?.id === item.id && editingCell?.field === 'title'">
                 <input ref="editInputRef" v-model="editValue" class="cell-input" @blur="commitEdit"
@@ -381,6 +400,15 @@ function formatDate(d: string) {
               <template v-else>
                 <span class="title-text">{{ item.title || 'Untitled' }}</span>
               </template>
+            </td>
+
+            <!-- Category (click to cycle) -->
+            <td class="col-category">
+              <button class="category-badge"
+                :style="{ color: CATEGORY_CONFIG[item.category].color, background: CATEGORY_CONFIG[item.category].bg }"
+                @click="cycleCategory(item)">
+                {{ CATEGORY_CONFIG[item.category].label }}
+              </button>
             </td>
 
             <!-- SMART fields (editable) -->
@@ -395,6 +423,42 @@ function formatDate(d: string) {
               </template>
             </td>
 
+            <!-- TimeBound (editable) -->
+            <td class="col-timebound cell-editable" @dblclick="startEdit(item, 'timeBound')">
+              <template v-if="editingCell?.id === item.id && editingCell?.field === 'timeBound'">
+                <input ref="editInputRef" v-model="editValue" type="date" class="cell-input" @blur="commitEdit"
+                  @keydown.enter="commitEdit" @keydown.escape="cancelEdit" />
+              </template>
+              <template v-else>
+                <span class="date-text"
+                  :class="{ overdue: item.timeBound && new Date(item.timeBound) < new Date() && item.status !== 'Completed' }">
+                  {{ formatDate(item.timeBound) }}
+                </span>
+              </template>
+            </td>
+
+            <!-- StartDate (editable) -->
+            <td class="col-startdate cell-editable" @dblclick="startEdit(item, 'startDate')">
+              <template v-if="editingCell?.id === item.id && editingCell?.field === 'startDate'">
+                <input ref="editInputRef" v-model="editValue" type="date" class="cell-input" @blur="commitEdit"
+                  @keydown.enter="commitEdit" @keydown.escape="cancelEdit" />
+              </template>
+              <template v-else>
+                <span class="date-text">{{ formatDate(item.startDate) }}</span>
+              </template>
+            </td>
+
+            <!-- TargetYear (editable) -->
+            <td class="col-targetyear cell-editable" @dblclick="startEdit(item, 'targetYear')">
+              <template v-if="editingCell?.id === item.id && editingCell?.field === 'targetYear'">
+                <input ref="editInputRef" v-model="editValue" type="number" class="cell-input" @blur="commitEdit"
+                  @keydown.enter="commitEdit" @keydown.escape="cancelEdit" />
+              </template>
+              <template v-else>
+                <span class="year-text">{{ item.targetYear || '—' }}</span>
+              </template>
+            </td>
+
             <!-- Status (click to cycle) -->
             <td class="col-status">
               <button class="status-badge"
@@ -402,45 +466,6 @@ function formatDate(d: string) {
                 @click="cycleStatus(item)">
                 {{ STATUS_CONFIG[item.status].label }}
               </button>
-            </td>
-
-            <!-- Priority (click to cycle) -->
-            <td class="col-priority">
-              <button class="priority-badge" @click="cyclePriority(item)">
-                <span class="priority-dot" :style="{ background: PRIORITY_CONFIG[item.priority].dot }" />
-                <span :style="{ color: PRIORITY_CONFIG[item.priority].color }">
-                  {{ PRIORITY_CONFIG[item.priority].label }}
-                </span>
-              </button>
-            </td>
-
-            <!-- Owner (editable) -->
-            <td class="col-owner cell-editable" @dblclick="startEdit(item, 'owner')">
-              <template v-if="editingCell?.id === item.id && editingCell?.field === 'owner'">
-                <input ref="editInputRef" v-model="editValue" class="cell-input" @blur="commitEdit"
-                  @keydown.enter="commitEdit" @keydown.escape="cancelEdit" />
-              </template>
-              <template v-else>
-                <div v-if="item.owner" class="owner-chip">
-                  <div class="owner-avatar">{{ item.owner.charAt(0) }}</div>
-                  <span>{{ item.owner }}</span>
-                </div>
-                <span v-else class="empty-cell">—</span>
-              </template>
-            </td>
-
-            <!-- Due Date (editable) -->
-            <td class="col-due cell-editable" @dblclick="startEdit(item, 'dueDate')">
-              <template v-if="editingCell?.id === item.id && editingCell?.field === 'dueDate'">
-                <input ref="editInputRef" v-model="editValue" type="date" class="cell-input" @blur="commitEdit"
-                  @keydown.enter="commitEdit" @keydown.escape="cancelEdit" />
-              </template>
-              <template v-else>
-                <span class="date-text"
-                  :class="{ overdue: item.dueDate && new Date(item.dueDate) < new Date() && item.status !== 'completed' }">
-                  {{ formatDate(item.dueDate) }}
-                </span>
-              </template>
             </td>
 
             <!-- Progress -->
@@ -470,7 +495,7 @@ function formatDate(d: string) {
 
           <!-- Empty state -->
           <tr v-if="filteredItems.length === 0">
-            <td :colspan="10 + SMART_FIELDS.length" class="empty-state">
+            <td :colspan="13" class="empty-state">
               <div class="empty-inner">
                 <span class="empty-icon">🔍</span>
                 <p>No goals found</p>
@@ -483,7 +508,7 @@ function formatDate(d: string) {
         <!-- Add row footer -->
         <tfoot>
           <tr class="add-row" @click="addRow">
-            <td :colspan="10 + SMART_FIELDS.length">
+            <td :colspan="13">
               <div class="add-row-inner">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <path d="M12 5v14M5 12h14" />
@@ -555,32 +580,36 @@ function formatDate(d: string) {
             <h3 class="drawer-section-title">Details</h3>
             <div class="meta-grid">
               <div class="meta-row">
-                <span class="meta-key">Owner</span>
-                <span class="meta-val">{{ openDetail.owner || '—' }}</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-key">Due Date</span>
-                <span class="meta-val">{{ formatDate(openDetail.dueDate) }}</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-key">Priority</span>
+                <span class="meta-key">Category</span>
                 <span class="meta-val">
-                  <span class="priority-dot" :style="{ background: PRIORITY_CONFIG[openDetail.priority].dot }" />
-                  {{ PRIORITY_CONFIG[openDetail.priority].label }}
+                  <span class="category-dot" :style="{ background: CATEGORY_CONFIG[openDetail.category].color }" />
+                  {{ CATEGORY_CONFIG[openDetail.category].label }}
                 </span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-key">Start Date</span>
+                <span class="meta-val">{{ formatDate(openDetail.startDate) }}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-key">Time-bound</span>
+                <span class="meta-val">{{ formatDate(openDetail.timeBound) }}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-key">Target Year</span>
+                <span class="meta-val">{{ openDetail.targetYear }}</span>
               </div>
             </div>
           </div>
 
           <!-- OKR placeholder -->
           <div class="drawer-section">
-            <h3 class="drawer-section-title">Linked OKRs</h3>
+            <h3 class="drawer-section-title">Year Plans</h3>
             <div class="okr-placeholder">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
                 <polyline points="13 2 13 9 20 9" />
               </svg>
-              <span>OKR detail view coming soon</span>
+              <span>Year plan detail view coming soon ({{ openDetail.yearPlans.length }} linked)</span>
             </div>
           </div>
         </div>
@@ -595,7 +624,6 @@ function formatDate(d: string) {
 
 /* ===== Root ===== */
 .smart-page {
-  font-family: 'DM Sans', -apple-system, sans-serif;
   background: #fff;
   min-height: 100vh;
   color: #1a1a1a;
@@ -604,7 +632,7 @@ function formatDate(d: string) {
 
 /* ===== Page Header ===== */
 .page-header {
-  padding: 48px 48px 0;
+  padding: 20px 48px 0;
   max-width: 100%;
 }
 
@@ -612,7 +640,7 @@ function formatDate(d: string) {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 6px;
+  /* margin-bottom: 6px; */
 }
 
 .page-emoji {
@@ -790,24 +818,28 @@ th svg {
   min-width: 160px;
 }
 
+.col-category {
+  width: 100px;
+}
+
 .col-smart {
   width: 160px;
   min-width: 140px;
 }
 
-.col-status {
+.col-timebound {
   width: 110px;
 }
 
-.col-priority {
+.col-startdate {
+  width: 110px;
+}
+
+.col-targetyear {
   width: 100px;
 }
 
-.col-owner {
-  width: 120px;
-}
-
-.col-due {
+.col-status {
   width: 110px;
 }
 
@@ -937,6 +969,26 @@ td.col-check {
   opacity: 0.8;
 }
 
+/* Category badge */
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  margin: 0 10px;
+  transition: opacity 0.1s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.category-badge:hover {
+  opacity: 0.8;
+}
+
 /* Priority */
 .priority-badge {
   display: inline-flex;
@@ -997,6 +1049,15 @@ td.col-check {
 
 .date-text.overdue {
   color: #c62828;
+}
+
+/* Year */
+.year-text {
+  padding: 0 10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #464644;
+  display: block;
 }
 
 /* Progress */
@@ -1337,6 +1398,15 @@ td.col-progress {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* Category dot */
+.category-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
 }
 
 /* OKR placeholder */

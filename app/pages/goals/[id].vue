@@ -295,7 +295,7 @@ function startOKREdit(okr: OKRItem, field: keyof OKRItem) {
   nextTick(() => {
     if (editOKRInputRef.value) {
       (editOKRInputRef.value as HTMLInputElement | HTMLTextAreaElement).focus()
-      ;(editOKRInputRef.value as HTMLInputElement | HTMLTextAreaElement).select()
+        ; (editOKRInputRef.value as HTMLInputElement | HTMLTextAreaElement).select()
     }
   })
 }
@@ -354,7 +354,7 @@ function startKREdit(kr: KRItem, field: keyof KRItem) {
   nextTick(() => {
     if (editKRInputRef.value) {
       (editKRInputRef.value as HTMLInputElement | HTMLTextAreaElement).focus()
-      ;(editKRInputRef.value as HTMLInputElement | HTMLTextAreaElement).select()
+        ; (editKRInputRef.value as HTMLInputElement | HTMLTextAreaElement).select()
     }
   })
 }
@@ -504,8 +504,7 @@ function deleteKR(quarter: Quarter, id: string) {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="okr in okrs" :key="okr.id" class="okr-row"
-                :class="{ hovered: hoveredOKRRow === okr.id }"
+              <tr v-for="okr in okrs" :key="okr.id" class="okr-row" :class="{ hovered: hoveredOKRRow === okr.id }"
                 @mouseenter="hoveredOKRRow = okr.id" @mouseleave="hoveredOKRRow = null">
                 <!-- Objective (editable) -->
                 <td class="col-objective cell-editable" @dblclick="startOKREdit(okr, 'objective')">
@@ -521,8 +520,8 @@ function deleteKR(quarter: Quarter, id: string) {
                 <!-- Key Result (editable) -->
                 <td class="col-keyresult cell-editable" @dblclick="startOKREdit(okr, 'keyResult')">
                   <template v-if="editingOKRCell?.id === okr.id && editingOKRCell?.field === 'keyResult'">
-                    <textarea ref="editOKRInputRef" v-model="editOKRValue" class="cell-textarea" rows="2" @blur="commitOKREdit"
-                      @keydown.escape="cancelOKREdit" />
+                    <textarea ref="editOKRInputRef" v-model="editOKRValue" class="cell-textarea" rows="2"
+                      @blur="commitOKREdit" @keydown.escape="cancelOKREdit" />
                   </template>
                   <template v-else>
                     <span class="cell-text">{{ okr.keyResult || '—' }}</span>
@@ -565,8 +564,8 @@ function deleteKR(quarter: Quarter, id: string) {
                 <!-- Due Date (editable) -->
                 <td class="col-duedate cell-editable" @dblclick="startOKREdit(okr, 'dueDate')">
                   <template v-if="editingOKRCell?.id === okr.id && editingOKRCell?.field === 'dueDate'">
-                    <input ref="editOKRInputRef" v-model="editOKRValue" type="date" class="cell-input" @blur="commitOKREdit"
-                      @keydown.enter="commitOKREdit" @keydown.escape="cancelOKREdit" />
+                    <input ref="editOKRInputRef" v-model="editOKRValue" type="date" class="cell-input"
+                      @blur="commitOKREdit" @keydown.enter="commitOKREdit" @keydown.escape="cancelOKREdit" />
                   </template>
                   <template v-else>
                     <span class="cell-text">{{ formatDate(okr.dueDate) }}</span>
@@ -634,8 +633,8 @@ function deleteKR(quarter: Quarter, id: string) {
               </thead>
               <tbody>
                 <tr v-for="kr in krs[quarter as Quarter]" :key="kr.id" class="kr-row"
-                  :class="{ hovered: hoveredKRRow === kr.id }"
-                  @mouseenter="hoveredKRRow = kr.id" @mouseleave="hoveredKRRow = null">
+                  :class="{ hovered: hoveredKRRow === kr.id }" @mouseenter="hoveredKRRow = kr.id"
+                  @mouseleave="hoveredKRRow = null">
                   <!-- Title (editable) -->
                   <td class="col-kr-title cell-editable" @dblclick="startKREdit(kr, 'title')">
                     <template v-if="editingKRCell?.id === kr.id && editingKRCell?.field === 'title'">
@@ -705,7 +704,8 @@ function deleteKR(quarter: Quarter, id: string) {
                   <!-- Delete button -->
                   <td class="col-kr-action">
                     <button class="delete-btn" @click="deleteKR(quarter as Quarter, kr.id)" title="Delete">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6l-1 14H6L5 6" />
                       </svg>
@@ -727,7 +727,8 @@ function deleteKR(quarter: Quarter, id: string) {
 
           <!-- Count -->
           <div class="table-footer-sm">
-            <span>{{ krs[quarter as Quarter].length }} KR{{ krs[quarter as Quarter].length !== 1 ? 's' : '' }}</span>
+            <span>{{ krs[quarter as Quarter].length }} KR{{ krs[quarter as Quarter].length !== 1 ? 's' : ''
+            }}</span>
           </div>
         </div>
       </div>
@@ -753,7 +754,7 @@ function deleteKR(quarter: Quarter, id: string) {
 
 /* ===== Header ===== */
 .detail-header {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto 40px;
   padding-bottom: 20px;
   border-bottom: 1px solid #f0f0ee;
@@ -827,7 +828,7 @@ function deleteKR(quarter: Quarter, id: string) {
 
 /* ===== Content ===== */
 .detail-content {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
