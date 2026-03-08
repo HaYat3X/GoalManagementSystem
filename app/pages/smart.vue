@@ -169,29 +169,6 @@ function cancelEdit() {
   editingCell.value = null
 }
 
-// async function cycleStatus(item: SmartItem) {
-//   const order: SmartStatus[] = ['Planning', 'Active', 'Completed']
-//   const idx = order.indexOf(item.status)
-//   const newStatus = order[(idx + 1) % order.length]
-
-//   item.status = newStatus
-
-//   await $fetch('/api/updateSmart', {
-//     method: 'POST',
-//     body: {
-//       id: item.id,
-//       field: 'status',
-//       value: newStatus
-//     }
-//   })
-// }
-
-// function cycleCategory(item: SmartItem) {
-//   const order: SmartCategory[] = ['Career', 'Skill', 'Finance', 'Life']
-//   const idx = order.indexOf(item.category)
-//   item.category = order[(idx + 1) % order.length]
-// }
-
 async function cycleStatus(item: SmartItem) {
   const order: SmartStatus[] = ['Planning', 'Active', 'Completed']
   const idx = order.indexOf(item.status)
