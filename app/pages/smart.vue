@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
+import { Target } from 'lucide-vue-next';
 
 // =====================
 // Types
@@ -150,8 +151,6 @@ const editValue = ref('')
 const editInputRef = ref<HTMLElement | null>(null)
 const hoveredRow = ref<string | null>(null)
 const selectedRows = ref<Set<string>>(new Set())
-const openDetailId = ref<string | null>(null)
-const newRowAdding = ref(false)
 const filterStatus = ref<SmartStatus | 'all'>('all')
 const sortField = ref<keyof SmartItem | null>(null)
 const sortDir = ref<'asc' | 'desc'>('asc')
@@ -183,8 +182,6 @@ const filteredItems = computed(() => {
 
   return list
 })
-
-const openDetail = computed(() => items.value.find(i => i.id === openDetailId.value) ?? null)
 
 const allSelected = computed(() =>
   filteredItems.value.length > 0 &&
@@ -230,10 +227,6 @@ function cycleCategory(item: SmartItem) {
   const order: SmartCategory[] = ['Career', 'Skill', 'Finance', 'Life']
   const idx = order.indexOf(item.category)
   item.category = order[(idx + 1) % order.length]
-}
-
-function setProgress(item: SmartItem, e: Event) {
-  item.progress = Number((e.target as HTMLInputElement).value)
 }
 
 function toggleRow(id: string) {
@@ -297,21 +290,13 @@ function formatDate(d: string) {
     <!-- ===== Page Header ===== -->
     <div class="page-header">
       <div class="page-title-row">
-        <span class="page-emoji">🎯</span>
-        <h1 class="page-title">SMART 目標</h1>
+        <Target class="page-icon" />
+        <h1 class="page-title">SMART Goals</h1>
       </div>
-      <p class="page-desc">Track, manage, and refine SMART objectives across your organization.</p>
 
       <!-- Toolbar -->
       <div class="toolbar">
         <div class="toolbar-left">
-          <!-- Status Filter -->
-          <!-- <div class="filter-chips">
-            <button v-for="s in (['all', 'on_track', 'at_risk', 'completed', 'not_started'] as const)" :key="s"
-              class="chip" :class="{ active: filterStatus === s }" @click="filterStatus = s">
-              {{ s === 'all' ? 'All' : STATUS_CONFIG[s].label }}
-            </button>
-          </div> -->
         </div>
 
         <div class="toolbar-right">
@@ -342,43 +327,34 @@ function formatDate(d: string) {
               <input type="checkbox" :checked="allSelected" @change="toggleAll" class="cb" />
             </th>
 
+            <!-- Status -->
+            <th class="col-status">Status</th>
+
             <!-- Goal Title -->
-            <th class="col-title sortable" @click="toggleSort('title')">
-              <span>Goal Title</span>
-              <svg v-if="sortField === 'title'" width="10" height="10" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" stroke-width="2.5">
-                <path v-if="sortDir === 'asc'" d="M12 19V5M5 12l7-7 7 7" />
-                <path v-else d="M12 5v14M5 12l7 7 7-7" />
-              </svg>
-            </th>
+            <th class="col-title">Goal Title</th>
 
             <!-- Category -->
-            <th class="col-category sortable" @click="toggleSort('category')">Category</th>
+            <th class="col-category">Category</th>
 
             <!-- SMART fields -->
             <th v-for="f in SMART_FIELDS" :key="f.key" class="col-smart">
-              <span class="smart-label">
-                <span class="smart-badge">{{ f.short }}</span>
-                {{ f.label }}
-              </span>
+              {{ f.label }}
             </th>
 
             <!-- TimeBound -->
-            <th class="col-timebound sortable" @click="toggleSort('timeBound')">Time-bound</th>
+            <th class="col-timebound">Target Date</th>
 
             <!-- StartDate -->
-            <th class="col-startdate sortable" @click="toggleSort('startDate')">Start Date</th>
+            <th class="col-startdate">Start Date</th>
 
             <!-- TargetYear -->
-            <th class="col-targetyear sortable" @click="toggleSort('targetYear')">Target Year</th>
-
-            <!-- Status -->
-            <th class="col-status sortable" @click="toggleSort('status')">Status</th>
+            <th class="col-targetyear">Target Year</th>
 
             <!-- Progress -->
             <th class="col-progress">Progress</th>
 
-            <th class="col-action"></th>
+            <!-- YearPlans -->
+            <th class="col-yearplans">Year Plans</th>
           </tr>
         </thead>
 
@@ -389,6 +365,15 @@ function formatDate(d: string) {
             <!-- Checkbox -->
             <td class="col-check">
               <input type="checkbox" :checked="selectedRows.has(item.id)" @change="toggleRow(item.id)" class="cb" />
+            </td>
+
+            <!-- Status (click to cycle) -->
+            <td class="col-status">
+              <button class="status-badge"
+                :style="{ color: STATUS_CONFIG[item.status].color, background: STATUS_CONFIG[item.status].bg }"
+                @click="cycleStatus(item)">
+                {{ STATUS_CONFIG[item.status].label }}
+              </button>
             </td>
 
             <!-- Goal Title (editable) -->
@@ -459,15 +444,6 @@ function formatDate(d: string) {
               </template>
             </td>
 
-            <!-- Status (click to cycle) -->
-            <td class="col-status">
-              <button class="status-badge"
-                :style="{ color: STATUS_CONFIG[item.status].color, background: STATUS_CONFIG[item.status].bg }"
-                @click="cycleStatus(item)">
-                {{ STATUS_CONFIG[item.status].label }}
-              </button>
-            </td>
-
             <!-- Progress -->
             <td class="col-progress">
               <div class="progress-wrap">
@@ -477,19 +453,11 @@ function formatDate(d: string) {
                 </div>
                 <span class="progress-pct">{{ item.progress }}%</span>
               </div>
-              <input type="range" min="0" max="100" :value="item.progress" class="progress-slider"
-                @input="setProgress(item, $event)" />
             </td>
 
-            <!-- Detail button -->
-            <td class="col-action">
-              <button class="detail-btn" @click="openDetailId = item.id" title="View Detail">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                  <polyline points="15 3 21 3 21 9" />
-                  <line x1="10" y1="14" x2="21" y2="3" />
-                </svg>
-              </button>
+            <!-- YearPlans -->
+            <td class="col-yearplans">
+              <span class="yearplans-count">{{ item.yearPlans.length }}</span>
             </td>
           </tr>
 
@@ -504,20 +472,6 @@ function formatDate(d: string) {
             </td>
           </tr>
         </tbody>
-
-        <!-- Add row footer -->
-        <tfoot>
-          <tr class="add-row" @click="addRow">
-            <td :colspan="13">
-              <div class="add-row-inner">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                New goal
-              </div>
-            </td>
-          </tr>
-        </tfoot>
       </table>
 
       <!-- Count -->
@@ -527,101 +481,10 @@ function formatDate(d: string) {
       </div>
     </div>
 
-    <!-- ===== Detail Drawer ===== -->
-    <Transition name="drawer">
-      <div v-if="openDetail" class="drawer-overlay" @click.self="openDetailId = null">
-        <div class="drawer">
-          <div class="drawer-header">
-            <div class="drawer-title-row">
-              <span class="drawer-emoji">🎯</span>
-              <h2 class="drawer-title">{{ openDetail.title || 'Untitled' }}</h2>
-            </div>
-            <div class="drawer-header-meta">
-              <button class="status-badge"
-                :style="{ color: STATUS_CONFIG[openDetail.status].color, background: STATUS_CONFIG[openDetail.status].bg }">
-                {{ STATUS_CONFIG[openDetail.status].label }}
-              </button>
-              <button class="icon-btn" @click="openDetailId = null">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Progress -->
-          <div class="drawer-section">
-            <div class="drawer-progress-row">
-              <span class="drawer-label">Progress</span>
-              <span class="drawer-progress-pct">{{ openDetail.progress }}%</span>
-            </div>
-            <div class="drawer-progress-bg">
-              <div class="drawer-progress-fill"
-                :style="{ width: openDetail.progress + '%', background: openDetail.progress === 100 ? '#2e7d32' : '#1565c0' }" />
-            </div>
-          </div>
-
-          <!-- SMART breakdown -->
-          <div class="drawer-section">
-            <h3 class="drawer-section-title">SMART Breakdown</h3>
-            <div class="smart-cards">
-              <div v-for="f in SMART_FIELDS" :key="f.key" class="smart-card">
-                <div class="smart-card-header">
-                  <span class="smart-badge lg">{{ f.short }}</span>
-                  <span class="smart-card-label">{{ f.label }}</span>
-                </div>
-                <p class="smart-card-body">{{ (openDetail as any)[f.key] || 'Not defined yet.' }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Meta -->
-          <div class="drawer-section">
-            <h3 class="drawer-section-title">Details</h3>
-            <div class="meta-grid">
-              <div class="meta-row">
-                <span class="meta-key">Category</span>
-                <span class="meta-val">
-                  <span class="category-dot" :style="{ background: CATEGORY_CONFIG[openDetail.category].color }" />
-                  {{ CATEGORY_CONFIG[openDetail.category].label }}
-                </span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-key">Start Date</span>
-                <span class="meta-val">{{ formatDate(openDetail.startDate) }}</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-key">Time-bound</span>
-                <span class="meta-val">{{ formatDate(openDetail.timeBound) }}</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-key">Target Year</span>
-                <span class="meta-val">{{ openDetail.targetYear }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- OKR placeholder -->
-          <div class="drawer-section">
-            <h3 class="drawer-section-title">Year Plans</h3>
-            <div class="okr-placeholder">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
-                <polyline points="13 2 13 9 20 9" />
-              </svg>
-              <span>Year plan detail view coming soon ({{ openDetail.yearPlans.length }} linked)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
   </div>
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
-
 /* ===== Root ===== */
 .smart-page {
   background: #fff;
@@ -640,11 +503,17 @@ function formatDate(d: string) {
   display: flex;
   align-items: center;
   gap: 12px;
-  /* margin-bottom: 6px; */
+  justify-content: flex-start;
 }
 
-.page-emoji {
-  font-size: 32px;
+.page-icon {
+  color: #1a1a1a;
+  width: 28px;
+  height: 28px;
+   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .page-title {
@@ -652,12 +521,6 @@ function formatDate(d: string) {
   font-weight: 600;
   letter-spacing: -0.02em;
   color: #111;
-}
-
-.page-desc {
-  font-size: 14px;
-  color: #91918e;
-  margin-bottom: 24px;
 }
 
 /* ===== Toolbar ===== */
@@ -700,7 +563,6 @@ function formatDate(d: string) {
   outline: none;
   font-size: 13px;
   color: #1a1a1a;
-  font-family: inherit;
   width: 160px;
 }
 
@@ -741,7 +603,6 @@ function formatDate(d: string) {
   font-weight: 500;
   cursor: pointer;
   border: none;
-  font-family: inherit;
   transition: all 0.1s;
 }
 
@@ -823,8 +684,8 @@ th svg {
 }
 
 .col-smart {
-  width: 160px;
-  min-width: 140px;
+  width: 320px;
+  min-width: 300px;
 }
 
 .col-timebound {
@@ -845,6 +706,10 @@ th svg {
 
 .col-progress {
   width: 130px;
+}
+
+.col-yearplans {
+  width: 100px;
 }
 
 .col-action {
@@ -902,7 +767,6 @@ td.col-check {
   border-radius: 4px;
   padding: 4px 10px;
   font-size: 13px;
-  font-family: inherit;
   background: #fff;
   box-sizing: border-box;
 }
@@ -914,7 +778,6 @@ td.col-check {
   border-radius: 4px;
   padding: 6px 10px;
   font-size: 12px;
-  font-family: inherit;
   background: #fff;
   resize: vertical;
   box-sizing: border-box;
@@ -1041,7 +904,6 @@ td.col-check {
 /* Date */
 .date-text {
   padding: 0 10px;
-  font-family: 'DM Mono', monospace;
   font-size: 12px;
   color: #464644;
   display: block;
@@ -1054,7 +916,14 @@ td.col-check {
 /* Year */
 .year-text {
   padding: 0 10px;
-  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #464644;
+  display: block;
+}
+
+/* Year Plans */
+.yearplans-count {
+  padding: 0 10px;
   font-size: 12px;
   color: #464644;
   display: block;
@@ -1083,26 +952,11 @@ td.col-check {
 }
 
 .progress-pct {
-  font-family: 'DM Mono', monospace;
   font-size: 11px;
   color: #91918e;
   width: 30px;
   text-align: right;
   flex-shrink: 0;
-}
-
-.progress-slider {
-  position: absolute;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  cursor: pointer;
-}
-
-td.col-progress {
-  position: relative;
 }
 
 /* Detail button */
@@ -1227,220 +1081,6 @@ td.col-progress {
 .icon-btn:hover {
   background: #f0f0ee;
   color: #1a1a1a;
-}
-
-/* ===== Detail Drawer ===== */
-.drawer-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  z-index: 100;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.drawer {
-  width: 520px;
-  max-width: 90vw;
-  height: 100%;
-  background: #fff;
-  overflow-y: auto;
-  padding: 0;
-  box-shadow: -4px 0 32px rgba(0, 0, 0, 0.12);
-  display: flex;
-  flex-direction: column;
-}
-
-.drawer-header {
-  position: sticky;
-  top: 0;
-  background: #fff;
-  padding: 24px 28px 16px;
-  border-bottom: 1px solid #f0f0ee;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  z-index: 1;
-}
-
-.drawer-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.drawer-emoji {
-  font-size: 22px;
-}
-
-.drawer-title {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: #111;
-}
-
-.drawer-header-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.drawer-section {
-  padding: 20px 28px;
-  border-bottom: 1px solid #f0f0ee;
-}
-
-.drawer-section-title {
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #91918e;
-  margin-bottom: 14px;
-}
-
-/* Drawer progress */
-.drawer-progress-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.drawer-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #464644;
-}
-
-.drawer-progress-pct {
-  font-family: 'DM Mono', monospace;
-  font-size: 13px;
-  font-weight: 500;
-  color: #1565c0;
-}
-
-.drawer-progress-bg {
-  height: 8px;
-  background: #f0f0ee;
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.drawer-progress-fill {
-  height: 100%;
-  border-radius: 99px;
-  transition: width 0.4s ease;
-}
-
-/* SMART cards */
-.smart-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.smart-card {
-  background: #fafafa;
-  border: 1px solid #f0f0ee;
-  border-radius: 8px;
-  padding: 12px 14px;
-}
-
-.smart-card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.smart-card-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #464644;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.smart-card-body {
-  font-size: 13px;
-  color: #6b6b68;
-  line-height: 1.6;
-  margin: 0;
-}
-
-/* Meta grid */
-.meta-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.meta-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.meta-key {
-  font-size: 12.5px;
-  color: #91918e;
-  width: 80px;
-  flex-shrink: 0;
-}
-
-.meta-val {
-  font-size: 13px;
-  color: #1a1a1a;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Category dot */
-.category-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  display: inline-block;
-}
-
-/* OKR placeholder */
-.okr-placeholder {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  background: #f7f7f5;
-  border: 1px dashed #d8d8d4;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #91918e;
-}
-
-/* ===== Transitions ===== */
-.drawer-enter-active,
-.drawer-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.drawer-enter-active .drawer,
-.drawer-leave-active .drawer {
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.drawer-enter-from,
-.drawer-leave-to {
-  opacity: 0;
-}
-
-.drawer-enter-from .drawer,
-.drawer-leave-to .drawer {
-  transform: translateX(100%);
 }
 
 /* ===== Scrollbar ===== */
