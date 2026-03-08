@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { Target } from 'lucide-vue-next';
 
 // =====================
@@ -50,98 +50,31 @@ const SMART_FIELDS: { key: keyof SmartItem; label: string; short: string }[] = [
 // =====================
 // Data
 // =====================
-const items = ref<SmartItem[]>([
-  {
-    id: '1',
-    title: 'Grow Monthly Active Users',
-    category: 'Career',
-    specific: 'Increase MAU by 25% through onboarding improvements',
-    measurable: 'Track via analytics dashboard weekly',
-    achievable: 'Allocated 2 engineers + 1 designer',
-    relevant: 'Directly tied to Q3 growth OKR',
-    timeBound: '2025-09-30',
-    startDate: '2025-01-01',
-    targetYear: 2025,
-    status: 'Active',
-    progress: 62,
-    yearPlans: [],
-  },
-  {
-    id: '2',
-    title: 'Reduce Support Ticket Volume',
-    category: 'Skill',
-    specific: 'Decrease tickets 30% via self-serve docs',
-    measurable: 'Monthly ticket count from Zendesk',
-    achievable: 'Content team + AI chatbot integration',
-    relevant: 'Supports NPS improvement goal',
-    timeBound: '2025-08-31',
-    startDate: '2025-02-01',
-    targetYear: 2025,
-    status: 'Active',
-    progress: 28,
-    yearPlans: [],
-  },
-  {
-    id: '3',
-    title: 'Launch Mobile App v2',
-    category: 'Finance',
-    specific: 'Ship redesigned iOS & Android apps',
-    measurable: 'App Store rating ≥ 4.5, D7 retention ≥ 40%',
-    achievable: '5-person mobile team, 12-week sprint',
-    relevant: 'Core to FY26 mobile-first strategy',
-    timeBound: '2025-10-15',
-    startDate: '2025-03-01',
-    targetYear: 2025,
-    status: 'Active',
-    progress: 45,
-    yearPlans: [],
-  },
-  {
-    id: '4',
-    title: 'Improve CI/CD Pipeline Speed',
-    category: 'Skill',
-    specific: 'Cut average build time from 14min → 6min',
-    measurable: 'CI dashboard average over 30-day window',
-    achievable: 'Platform team owns infra changes',
-    relevant: 'Developer velocity KPI',
-    timeBound: '2025-07-31',
-    startDate: '2025-01-15',
-    targetYear: 2025,
-    status: 'Completed',
-    progress: 100,
-    yearPlans: [],
-  },
-  {
-    id: '5',
-    title: 'Establish Data Governance Policy',
-    category: 'Career',
-    specific: 'Define data classification, access, retention rules',
-    measurable: 'Policy adopted by all 6 product teams',
-    achievable: 'Legal + Eng leads aligned',
-    relevant: 'Required for SOC2 Type II',
-    timeBound: '2025-12-31',
-    startDate: '2025-04-01',
-    targetYear: 2025,
-    status: 'Planning',
-    progress: 0,
-    yearPlans: [],
-  },
-  {
-    id: '6',
-    title: 'Increase Revenue Per User',
-    category: 'Finance',
-    specific: 'Upsell 15% of free users to paid plans',
-    measurable: 'Stripe MRR conversion rate',
-    achievable: 'Growth team + in-app upgrade prompts',
-    relevant: 'Critical for Series B metrics',
-    timeBound: '2025-09-30',
-    startDate: '2025-01-01',
-    targetYear: 2025,
-    status: 'Active',
-    progress: 19,
-    yearPlans: [],
-  },
-])
+const items = ref<SmartItem[]>([])
+const loading = ref(true)
+const error = ref<string | null>(null)
+
+// Notionからデータを取得
+async function fetchNotionData() {
+  try {
+    loading.value = true
+    error.value = null
+    const response = await $fetch('/api/getSmart')
+    if (response.success) {
+      // APIからすでに整形されたデータが返ってくる
+      items.value = response.data
+    }
+  } catch (err) {
+    error.value = 'Notionデータの取得に失敗しました'
+    console.error('Error fetching Notion data:', err)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchNotionData()
+})
 
 // =====================
 // State
@@ -204,12 +137,31 @@ function startEdit(item: SmartItem, field: keyof SmartItem) {
   })
 }
 
-function commitEdit() {
+async function commitEdit() {
   if (!editingCell.value) return
-  const item = items.value.find(i => i.id === editingCell.value!.id)
-  if (item) {
-    (item as any)[editingCell.value.field] = editValue.value
+
+  const { id, field } = editingCell.value
+  const item = items.value.find(i => i.id === id)
+
+  if (!item) return
+
+  const newValue = editValue.value
+
+  try {
+    await $fetch('/api/updateSmart', {
+      method: 'POST',
+      body: {
+        id,
+        field,
+        value: newValue
+      }
+    })
+
+      ; (item as any)[field] = newValue
+  } catch (err) {
+    console.error('Update failed', err)
   }
+
   editingCell.value = null
 }
 
@@ -217,16 +169,69 @@ function cancelEdit() {
   editingCell.value = null
 }
 
-function cycleStatus(item: SmartItem) {
+// async function cycleStatus(item: SmartItem) {
+//   const order: SmartStatus[] = ['Planning', 'Active', 'Completed']
+//   const idx = order.indexOf(item.status)
+//   const newStatus = order[(idx + 1) % order.length]
+
+//   item.status = newStatus
+
+//   await $fetch('/api/updateSmart', {
+//     method: 'POST',
+//     body: {
+//       id: item.id,
+//       field: 'status',
+//       value: newStatus
+//     }
+//   })
+// }
+
+// function cycleCategory(item: SmartItem) {
+//   const order: SmartCategory[] = ['Career', 'Skill', 'Finance', 'Life']
+//   const idx = order.indexOf(item.category)
+//   item.category = order[(idx + 1) % order.length]
+// }
+
+async function cycleStatus(item: SmartItem) {
   const order: SmartStatus[] = ['Planning', 'Active', 'Completed']
   const idx = order.indexOf(item.status)
-  item.status = order[(idx + 1) % order.length]
+  const newStatus = order[(idx + 1) % order.length]
+
+  item.status = newStatus
+
+  try {
+    await $fetch('/api/updateSmart', {
+      method: 'POST',
+      body: {
+        id: item.id,
+        field: 'status',
+        value: newStatus
+      }
+    })
+  } catch (err) {
+    console.error('status update failed', err)
+  }
 }
 
-function cycleCategory(item: SmartItem) {
+async function cycleCategory(item: SmartItem) {
   const order: SmartCategory[] = ['Career', 'Skill', 'Finance', 'Life']
   const idx = order.indexOf(item.category)
-  item.category = order[(idx + 1) % order.length]
+  const newCategory = order[(idx + 1) % order.length]
+
+  item.category = newCategory
+
+  try {
+    await $fetch('/api/updateSmart', {
+      method: 'POST',
+      body: {
+        id: item.id,
+        field: 'category',
+        value: newCategory
+      }
+    })
+  } catch (err) {
+    console.error('category update failed', err)
+  }
 }
 
 function toggleRow(id: string) {
@@ -269,15 +274,6 @@ function addRow() {
   })
 }
 
-function toggleSort(field: keyof SmartItem) {
-  if (sortField.value === field) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortField.value = field
-    sortDir.value = 'asc'
-  }
-}
-
 function formatDate(d: string) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -317,8 +313,19 @@ function formatDate(d: string) {
       </div>
     </div>
 
+    <!-- Loading and Error States -->
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Notionからデータを読み込み中...</p>
+    </div>
+
+    <div v-else-if="error" class="error-state">
+      <p class="error-message">{{ error }}</p>
+      <button class="btn btn-primary" @click="fetchNotionData">再試行</button>
+    </div>
+
     <!-- ===== Table ===== -->
-    <div class="table-wrap">
+    <div v-else class="table-wrap">
       <table class="smart-table">
         <thead>
           <tr>
@@ -510,7 +517,7 @@ function formatDate(d: string) {
   color: #1a1a1a;
   width: 28px;
   height: 28px;
-   flex-shrink: 0;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -795,11 +802,10 @@ td.col-check {
 
 .cell-text {
   display: block;
-  padding: 0 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: #464644;
+  padding: 6px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .title-text {
