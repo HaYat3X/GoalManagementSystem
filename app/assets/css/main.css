@@ -10,10 +10,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Body設定 */
-body {
+html,
+body,
+#__nuxt,
+#__layout {
+  height: 100%;
   margin: 0;
-  padding: 0;
   background-color: #ffffff;
   color: #333333;
 }
